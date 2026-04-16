@@ -21,4 +21,16 @@ This project is a full-stack web application that automates passport photo creat
 - Used MobileNetV3 as the backbone for efficient feature extraction  
 - Trained on a custom dataset of 250+ annotated images  
 - Optimized for fast and accurate human segmentation
-- 
+  
+## How to Run
+
+1. Clone the repository:
+   ```bash
+   git clone https://github.com/aadrikanandastudent-pixel/ai-passport-photo-app.git
+
+2. Navigate to the project folder
+   </> Bash
+       cd ai-passport-photo-app
+
+3. Run the flask app 
+   python app.py
