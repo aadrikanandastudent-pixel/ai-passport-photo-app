@@ -1,0 +1,205 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8" />
+  <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+  <title>Passport Photo Generator</title>
+  <style>
+    body {
+      font-family: Arial, sans-serif;
+      margin: 20px;
+      background-color: #f0f0f0;
+    }
+    h1 {
+      text-align: center;
+    }
+    #container {
+      max-width: 800px;
+      margin: auto;
+      background: #fff;
+      padding: 20px;
+      border-radius: 8px;
+    }
+    .section {
+      margin-bottom: 20px;
+    }
+    #preview {
+      width: 300px;
+      height: 300px;
+      border: 2px solid #ccc;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background-color: #eee;
+      margin: auto;
+    }
+    #preview img {
+      max-width: 100%;
+      max-height: 100%;
+    }
+    select, input[type="file"], button {
+      width: 100%;
+      padding: 10px;
+      margin-top: 10px;
+      font-size: 16px;
+    }
+    #downloadLink {
+      display: inline-block;
+      margin-top: 15px;
+      text-decoration: none;
+      background-color: #4CAF50;
+      color: white;
+      padding: 10px 20px;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body>
+
+<h1>AI-Powered Passport Photo Generator</h1>
+
+<div id="container">
+
+  <div class="section">
+    <h2>Upload or Capture Photo</h2>
+    <input type="file" id="upload" accept="image/*" />
+    <p>Or use your camera (if supported):</p>
+    <button onclick="startCamera()">Start Camera</button>
+    <video id="video" width="300" height="225" autoplay style="display:none; border: 1px solid #ccc;"></video>
+    <button id="captureBtn" style="display:none;" onclick="capturePhoto()">Capture Photo</button>
+  </div>
+
+  <div class="section">
+    <h2>Select Background Color</h2>
+    <select id="bgColor">
+      <option value="#ffffff">White</option>
+      <option value="#0000ff">Blue</option>
+      <option value="transparent">Transparent</option>
+    </select>
+  </div>
+
+  <div class="section">
+    <h2>Preview</h2>
+    <div id="preview">
+      <span>No image uploaded</span>
+    </div>
+  </div>
+
+  <div class="section" style="text-align:center;">
+    <button id="generateBtn" onclick="generatePassportPhoto()">Generate Passport Photo</button>
+    <br/><br/>
+    <a id="downloadLink" href="#" download="passport_photo.png" style="display:none;">Download Passport Photo</a>
+  </div>
+
+</div>
+
+<script>
+  const uploadInput = document.getElementById('upload');
+  const previewDiv = document.getElementById('preview');
+  const bgColorSelect = document.getElementById('bgColor');
+  const video = document.getElementById('video');
+  const captureBtn = document.getElementById('captureBtn');
+  const generateBtn = document.getElementById('generateBtn');
+
+  let uploadedImage = null; // Store base64 data
+  let capturedImage = null;
+
+  // Start camera
+  function startCamera() {
+    navigator.mediaDevices.getUserMedia({ video: true })
+      .then(stream => {
+        video.srcObject = stream;
+        video.style.display = 'block';
+        captureBtn.style.display = 'inline-block';
+      })
+      .catch(err => alert('Camera access denied or not supported.'));
+  }
+
+  // Capture photo from video
+  function capturePhoto() {
+    const canvas = document.createElement('canvas');
+    canvas.width = video.videoWidth;
+    canvas.height = video.videoHeight;
+    const ctx = canvas.getContext('2d');
+    ctx.drawImage(video, 0, 0);
+    
+    // Stop camera stream
+    video.srcObject.getTracks().forEach(track => track.stop());
+    video.style.display = 'none';
+    captureBtn.style.display = 'none';
+
+    capturedImage = canvas.toDataURL('image/png');
+    uploadedImage = null; // Clear upload if we captured a new one
+    displayImage(capturedImage);
+  }
+
+  // Handle file upload
+  uploadInput.addEventListener('change', () => {
+    const file = uploadInput.files[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = () => {
+        uploadedImage = reader.result;
+        capturedImage = null; // Clear capture if we uploaded a new one
+        displayImage(uploadedImage);
+      };
+      reader.readAsDataURL(file);
+    }
+  });
+
+  // Display image in preview div
+  function displayImage(dataURL) {
+    previewDiv.innerHTML = '';
+    const img = document.createElement('img');
+    img.src = dataURL;
+    previewDiv.appendChild(img);
+  }
+
+  // UPDATED: Sends data to Python Backend for AI processing
+  async function generatePassportPhoto() {
+    const imageData = uploadedImage || capturedImage;
+    
+    if (!imageData) {
+      alert('Please upload or capture a photo first.');
+      return;
+    }
+
+    // Visual feedback for AI processing
+    generateBtn.textContent = "AI Removing Background...";
+    generateBtn.disabled = true;
+
+    try {
+      const response = await fetch('/process', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ 
+          image: imageData, 
+          color: bgColorSelect.value 
+        })
+      });
+
+      const result = await response.json();
+      
+      if (result.success) {
+        // Update the preview with the AI-processed image
+        displayImage(result.processed_image);
+        
+        const downloadLink = document.getElementById('downloadLink');
+        downloadLink.href = result.processed_image;
+        downloadLink.style.display = 'inline-block';
+        downloadLink.textContent = 'Download AI Passport Photo';
+      } else {
+        alert("AI processing failed: " + result.error);
+      }
+    } catch (error) {
+      console.error(error);
+      alert("Could not connect to the Python backend. Ensure Flask is running.");
+    } finally {
+      generateBtn.textContent = "Generate Passport Photo";
+      generateBtn.disabled = false;
+    }
+  }
+</script>
+
+</body>
+</html>
