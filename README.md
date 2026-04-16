@@ -26,7 +26,7 @@ This project is a full-stack web application that automates passport photo creat
 
 1. Clone the repository:
    ```bash
-   git clone https://github.com/aadrikanandastudent-pixel/ai-passport-photo-app.git
+   git clone https://github.com/AadrikaNanda/ai-passport-photo-app.git
 
 2. Navigate to the project folder
    </> Bash
